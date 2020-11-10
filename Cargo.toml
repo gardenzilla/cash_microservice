@@ -1,0 +1,20 @@
+[package]
+authors = ["Peter Mezei <mezeipetister@gmail.com>"]
+edition = "2018"
+name = "cash_microservice"
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bcrypt = "*"
+chrono = {version = "0.4", features = ["serde"]}
+gzlib = "*"
+# prelude = {git = "https://github.com/gardenzilla/prelude"}
+packman = "*"
+prost = "0.6"
+rand = "*"
+serde = {version = "1.0", features = ["derive"]}
+serde_yaml = "0.8"
+tokio = {version = "0.2", features = ["full"]}
+tonic = "0.3"
