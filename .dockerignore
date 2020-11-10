@@ -1,0 +1,6 @@
+data/
+target/
+src/
+!target/release/product_microservice
+Cargo.lock
+.git/

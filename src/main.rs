@@ -5,6 +5,7 @@ use gzlib::proto::cash::cash_service_client as client;
 use gzlib::proto::cash::cash_service_server as server;
 // use gzlib::proto::user::*;
 use packman::*;
+use std::env;
 use std::error::Error;
 use std::path::PathBuf;
 use tokio::sync::{oneshot, Mutex};
@@ -61,12 +62,32 @@ impl server::CashService for CashService {
         &self,
         request: Request<proto::cash::LogRequest>,
     ) -> Result<Response<proto::cash::LogResponse>, Status> {
+        use chrono::{DateTime, Utc};
+        use proto::cash::TransactionResponse;
         let r = request.into_inner();
         let from = chrono::DateTime::parse_from_rfc3339(&r.from)
             .map_err(|_| Status::invalid_argument("From date invalid"))?;
         let till = chrono::DateTime::parse_from_rfc3339(&r.till)
             .map_err(|_| Status::invalid_argument("Till date invalid"))?;
-        let res = self.transactions.lock().await.unpack().get_log(from, till)
+        let res = self
+            .transactions
+            .lock()
+            .await
+            .unpack()
+            .get_log(DateTime::<Utc>::from(from), DateTime::<Utc>::from(till))
+            .iter()
+            .map(|i| TransactionResponse {
+                transaction_id: i.id,
+                kind: i.kind.to_string(),
+                amount: i.amount,
+                reference: i.reference.to_string(),
+                created_by: i.created_by.to_string(),
+                created_at: i.date_created.to_rfc3339(),
+            })
+            .collect::<Vec<TransactionResponse>>();
+        Ok(Response::new(proto::cash::LogResponse {
+            transaction_details: res,
+        }))
     }
 }
 
@@ -79,7 +100,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Address is valid?
     // Todo: Implement auto address from environment variable
-    let addr = "[::1]:50055".parse().unwrap();
+    let addr = env::var("SERVICE_ADDR_CASH")
+        .unwrap_or("[::1]:50051".into())
+        .parse()
+        .unwrap();
 
     // Create shutdown channel
     let (tx, rx) = oneshot::channel();
