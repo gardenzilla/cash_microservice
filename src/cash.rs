@@ -121,3 +121,38 @@ impl TransactionKind {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_add_transaction() {
+        use TransactionKind::*;
+        let mut tlog = TransactionLog::default();
+        let a = tlog
+            .add_transaction(&Purchase.to_string(), 100, "".into(), "demo".into())
+            .unwrap()
+            .clone();
+        let b = tlog
+            .add_transaction(&Purchase.to_string(), 200, "".into(), "demo".into())
+            .unwrap()
+            .clone();
+        let c = tlog
+            .add_transaction(&Purchase.to_string(), 300, "".into(), "demo".into())
+            .unwrap()
+            .clone();
+        let d = tlog
+            .add_transaction(&Purchase.to_string(), 400, "".into(), "demo".into())
+            .unwrap()
+            .clone();
+        assert_eq!(a.id, 1);
+        assert_eq!(b.id, 2);
+        assert_eq!(c.id, 3);
+        assert_eq!(d.id, 4);
+        assert_eq!(a.amount, 100);
+        assert_eq!(b.amount, 200);
+        assert_eq!(c.amount, 300);
+        assert_eq!(d.amount, 400);
+        assert_eq!(tlog.get_balance(), 1000);
+    }
+}
