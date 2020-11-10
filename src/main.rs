@@ -1,7 +1,6 @@
 extern crate gzlib;
 
 mod cash;
-use gzlib::proto::cash::cash_service_client as client;
 use gzlib::proto::cash::cash_service_server as server;
 // use gzlib::proto::user::*;
 use packman::*;
@@ -9,7 +8,6 @@ use std::env;
 use std::error::Error;
 use std::path::PathBuf;
 use tokio::sync::{oneshot, Mutex};
-use tonic::transport::Channel;
 use tonic::{transport::Server, Request, Response, Status};
 
 use gzlib::proto;
@@ -52,7 +50,7 @@ impl server::CashService for CashService {
 
     async fn get_balance(
         &self,
-        request: Request<proto::cash::BalanceRequest>,
+        _: Request<proto::cash::BalanceRequest>,
     ) -> Result<Response<proto::cash::Balance>, Status> {
         let balance = self.transactions.lock().await.unpack().get_balance();
         Ok(Response::new(proto::cash::Balance { balance }))

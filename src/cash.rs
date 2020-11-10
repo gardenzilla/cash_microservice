@@ -1,5 +1,4 @@
 use chrono::{DateTime, Utc};
-use packman::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
