@@ -1,6 +1,6 @@
 data/
 target/
 src/
-!target/release/product_microservice
+!target/release/cash_microservice
 Cargo.lock
 .git/
