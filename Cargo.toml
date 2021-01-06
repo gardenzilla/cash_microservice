@@ -10,7 +10,6 @@ version = "0.1.0"
 bcrypt = "*"
 chrono = {version = "0.4", features = ["serde"]}
 gzlib = "*"
-# prelude = {git = "https://github.com/gardenzilla/prelude"}
 packman = "*"
 prost = "0.6"
 rand = "*"
@@ -18,3 +17,4 @@ serde = {version = "1.0", features = ["derive"]}
 serde_yaml = "0.8"
 tokio = {version = "0.2", features = ["full"]}
 tonic = "0.3"
+uuid = {version = "0.8", features = ["serde", "v4"]}
