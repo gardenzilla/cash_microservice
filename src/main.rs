@@ -3,7 +3,10 @@ mod prelude;
 
 use cash::Transaction;
 use chrono::{DateTime, Utc};
-use gzlib::proto::cash::{cash_server::*, BalanceObject, LogRequest, NewTransaction};
+use gzlib::proto::cash::{
+  cash_server::*, BalanceObject, BulkRequest, ByIdRequest, DateRangeRequest, NewTransaction,
+  TransactionIds,
+};
 use packman::*;
 use prelude::*;
 use proto::cash::TransactionObject;
@@ -12,6 +15,7 @@ use std::error::Error;
 use std::path::PathBuf;
 use tokio::sync::{oneshot, Mutex};
 use tonic::{transport::Server, Request, Response, Status};
+use uuid::Uuid;
 
 use gzlib::proto;
 
@@ -58,14 +62,47 @@ impl CashService {
     let res = self.transactions.lock().await.unpack().get_balance();
     Ok(res)
   }
+  // Get by ID
+  async fn get_by_id(&self, r: ByIdRequest) -> ServiceResult<TransactionObject> {
+    // Transform id as String to UUID
+    let id = Uuid::parse_str(&r.transaction_id)
+      .map_err(|_| ServiceError::bad_request("Hibás tranzakció azonosító"))?;
+    // Try find transaction object
+    let res: TransactionObject = self
+      .transactions
+      .lock()
+      .await
+      .unpack()
+      .get_transactions()
+      .iter()
+      .find(|tr| tr.id == id)
+      .ok_or(ServiceError::not_found("A kért tranzakció nem található"))?
+      .clone()
+      .into();
+    Ok(res)
+  }
+  // Get bulk
+  async fn get_bulk(&self, r: BulkRequest) -> ServiceResult<Vec<TransactionObject>> {
+    let res = self
+      .transactions
+      .lock()
+      .await
+      .unpack()
+      .get_transactions()
+      .iter()
+      .filter(|tr| r.transaction_ids.contains(&tr.id.to_string()))
+      .map(|tr| tr.clone().into())
+      .collect::<Vec<TransactionObject>>();
+    Ok(res)
+  }
   // Get transaction log
-  async fn transaction_log(&self, r: LogRequest) -> ServiceResult<Vec<TransactionObject>> {
+  async fn get_by_date_range(&self, r: DateRangeRequest) -> ServiceResult<Vec<String>> {
     // Define from date
-    let from = DateTime::parse_from_rfc3339(&r.from)
+    let from = DateTime::parse_from_rfc3339(&r.date_from)
       .map_err(|_| ServiceError::bad_request("A megadott -tól- dátum hibás"))?
       .with_timezone(&Utc);
     // Define till date
-    let till = DateTime::parse_from_rfc3339(&r.till)
+    let till = DateTime::parse_from_rfc3339(&r.date_till)
       .map_err(|_| ServiceError::bad_request("A megadott -ig- dátum hibás"))?
       .with_timezone(&Utc);
     // Filter transactions by dates
@@ -77,8 +114,8 @@ impl CashService {
       .get_transactions()
       .iter()
       .filter(|t| t.created_at >= from && t.created_at <= till)
-      .map(|t| t.clone().into())
-      .collect::<Vec<TransactionObject>>();
+      .map(|t| t.id.to_string())
+      .collect::<Vec<String>>();
     // Return transactions as Vec<TransactionObject>
     Ok(res)
   }
@@ -88,30 +125,35 @@ impl CashService {
 impl Cash for CashService {
   async fn create_transaction(
     &self,
-    request: Request<proto::cash::NewTransaction>,
+    request: Request<NewTransaction>,
   ) -> Result<Response<TransactionObject>, Status> {
     let res = self.create_transaction(request.into_inner()).await?;
     Ok(Response::new(res))
   }
 
-  async fn get_balance(
-    &self,
-    _: Request<()>,
-  ) -> Result<Response<proto::cash::BalanceObject>, Status> {
+  async fn get_balance(&self, _: Request<()>) -> Result<Response<BalanceObject>, Status> {
     let res = self.get_balance().await?;
     Ok(Response::new(BalanceObject { balance: res }))
   }
 
-  type TransactionLogStream = tokio::sync::mpsc::Receiver<Result<TransactionObject, Status>>;
-
-  async fn transaction_log(
+  async fn get_by_id(
     &self,
-    request: Request<proto::cash::LogRequest>,
-  ) -> Result<Response<Self::TransactionLogStream>, Status> {
+    request: Request<ByIdRequest>,
+  ) -> Result<Response<TransactionObject>, Status> {
+    let res = self.get_by_id(request.into_inner()).await?;
+    Ok(Response::new(res))
+  }
+
+  type GetBulkStream = tokio::sync::mpsc::Receiver<Result<TransactionObject, Status>>;
+
+  async fn get_bulk(
+    &self,
+    request: Request<BulkRequest>,
+  ) -> Result<Response<Self::GetBulkStream>, Status> {
     // Create channels
     let (mut tx, rx) = tokio::sync::mpsc::channel(100);
     // Get found price objects
-    let res = self.transaction_log(request.into_inner()).await?;
+    let res = self.get_bulk(request.into_inner()).await?;
     // Send found price_objects through the channel
     for transaction in res.into_iter() {
       tx.send(Ok(transaction))
@@ -119,6 +161,14 @@ impl Cash for CashService {
         .map_err(|_| Status::internal("Error while sending price bulk over channel"))?
     }
     return Ok(Response::new(rx));
+  }
+
+  async fn get_by_date_range(
+    &self,
+    request: Request<DateRangeRequest>,
+  ) -> Result<Response<TransactionIds>, Status> {
+    let transaction_ids = self.get_by_date_range(request.into_inner()).await?;
+    Ok(Response::new(TransactionIds { transaction_ids }))
   }
 }
 
