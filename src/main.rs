@@ -155,11 +155,11 @@ impl Cash for CashService {
     // Get found price objects
     let res = self.get_bulk(request.into_inner()).await?;
     // Send found price_objects through the channel
-    for transaction in res.into_iter() {
-      tx.send(Ok(transaction))
-        .await
-        .map_err(|_| Status::internal("Error while sending price bulk over channel"))?
-    }
+    tokio::spawn(async move {
+      for transaction in res.into_iter() {
+        tx.send(Ok(transaction)).await.unwrap();
+      }
+    });
     return Ok(Response::new(rx));
   }
 
