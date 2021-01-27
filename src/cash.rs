@@ -7,14 +7,14 @@ pub struct TransactionLog {
   // Stored transactions
   transactions: Vec<Transaction>,
   // Balance
-  balance: i32,
+  balance_cash: i32,
 }
 
 impl Default for TransactionLog {
   fn default() -> Self {
     TransactionLog {
       transactions: Vec::new(),
-      balance: 0,
+      balance_cash: 0,
     }
   }
 }
@@ -22,8 +22,11 @@ impl Default for TransactionLog {
 impl TransactionLog {
   /// Add Transaction to transactions
   pub fn add_transaction(&mut self, transaction: Transaction) -> Result<&Transaction, String> {
-    // Incerement balance
-    self.balance += transaction.amount;
+    match transaction.kind {
+      // Incerement balance if cash
+      TransactionKind::Cash => self.balance_cash += transaction.amount,
+      _ => (),
+    }
     // Store transaction
     self.transactions.push(transaction.clone());
     // Find the last transaction and return a ref of it
@@ -38,7 +41,7 @@ impl TransactionLog {
   }
   /// Get current balance
   pub fn get_balance(&self) -> i32 {
-    self.balance
+    self.balance_cash
   }
   pub fn get_transactions(&self) -> &Vec<Transaction> {
     &self.transactions
