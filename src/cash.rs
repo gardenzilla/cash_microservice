@@ -46,12 +46,27 @@ impl TransactionLog {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+pub enum TransactionKind {
+  Cash,
+  Card,
+  Transfer,
+}
+
+impl Default for TransactionKind {
+  fn default() -> Self {
+    TransactionKind::Cash
+  }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Transaction {
   // Random transaction ID using UUID
   pub id: Uuid,
   // Optional cart_id, only
   // if the payment is related to a cart
   pub cart_id: Option<u32>,
+  // Transaction Kind
+  pub kind: TransactionKind,
   // Payment
   pub amount: i32,
   // Reference
@@ -67,6 +82,7 @@ pub struct Transaction {
 impl Transaction {
   pub fn new(
     cart_id: Option<u32>,
+    kind: TransactionKind,
     amount: i32,
     reference: String,
     comment: String,
@@ -75,6 +91,7 @@ impl Transaction {
     Self {
       id: uuid::Uuid::new_v4(),
       cart_id,
+      kind,
       amount,
       reference,
       comment,
@@ -89,6 +106,7 @@ impl Default for Transaction {
     Transaction {
       id: Uuid::default(),
       cart_id: None,
+      kind: TransactionKind::default(),
       amount: 0,
       reference: String::default(),
       comment: String::default(),

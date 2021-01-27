@@ -80,6 +80,11 @@ impl From<Transaction> for TransactionObject {
         Some(cid) => Some(CartId::Cart(cid)),
         None => Some(CartId::None(())),
       },
+      kind: match t.kind {
+        crate::cash::TransactionKind::Cash => gzlib::proto::cash::TransactionKind::KindCash,
+        crate::cash::TransactionKind::Card => gzlib::proto::cash::TransactionKind::KindCard,
+        crate::cash::TransactionKind::Transfer => gzlib::proto::cash::TransactionKind::KindTransfer,
+      } as i32,
       amount: t.amount,
       reference: t.reference,
       comment: t.comment,

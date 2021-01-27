@@ -31,6 +31,9 @@ impl CashService {
     }
   }
   async fn create_transaction(&self, r: NewTransaction) -> ServiceResult<TransactionObject> {
+    let tr: proto::cash::TransactionKind = proto::cash::TransactionKind::from_i32(r.kind).ok_or(
+      ServiceError::internal_error("A tranzakció kód kódolásánál hiba történt"),
+    )?;
     // Create new transaction object
     let new_transaction = Transaction::new(
       match r.cart_id {
@@ -39,6 +42,11 @@ impl CashService {
           proto::cash::new_transaction::CartId::None(_) => None,
         },
         None => None,
+      },
+      match tr {
+        proto::cash::TransactionKind::KindCash => cash::TransactionKind::Cash,
+        proto::cash::TransactionKind::KindCard => cash::TransactionKind::Card,
+        proto::cash::TransactionKind::KindTransfer => cash::TransactionKind::Transfer,
       },
       r.amount,
       r.reference,
