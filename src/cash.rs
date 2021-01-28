@@ -67,7 +67,7 @@ pub struct Transaction {
   pub id: Uuid,
   // Optional cart_id, only
   // if the payment is related to a cart
-  pub cart_id: Option<u32>,
+  pub cart_id: Option<String>,
   // Transaction Kind
   pub kind: TransactionKind,
   // Payment
@@ -84,7 +84,7 @@ pub struct Transaction {
 
 impl Transaction {
   pub fn new(
-    cart_id: Option<u32>,
+    cart_id: Option<String>,
     kind: TransactionKind,
     amount: i32,
     reference: String,
