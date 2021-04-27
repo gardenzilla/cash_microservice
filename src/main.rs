@@ -15,6 +15,7 @@ use std::error::Error;
 use std::path::PathBuf;
 use tokio::sync::{oneshot, Mutex};
 use tonic::{transport::Server, Request, Response, Status};
+use tokio_stream::wrappers::ReceiverStream;
 use uuid::Uuid;
 
 use gzlib::proto;
@@ -152,7 +153,7 @@ impl Cash for CashService {
     Ok(Response::new(res))
   }
 
-  type GetBulkStream = tokio::sync::mpsc::Receiver<Result<TransactionObject, Status>>;
+  type GetBulkStream = ReceiverStream<Result<TransactionObject, Status>>;
 
   async fn get_bulk(
     &self,
@@ -168,7 +169,7 @@ impl Cash for CashService {
         tx.send(Ok(transaction)).await.unwrap();
       }
     });
-    return Ok(Response::new(rx));
+    return Ok(Response::new(ReceiverStream::new(rx)));
   }
 
   async fn get_by_date_range(

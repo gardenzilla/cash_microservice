@@ -13,8 +13,8 @@
 # ENTRYPOINT ["cash_microservice"]
 
 FROM fedora:33
+RUN dnf update -y && dnf clean all -y
 WORKDIR /usr/local/bin
 COPY ./target/release/cash_microservice /usr/local/bin/cash_microservice
-RUN dnf install curl -y
 STOPSIGNAL SIGINT
 ENTRYPOINT ["cash_microservice"]
